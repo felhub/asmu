@@ -1,9 +1,8 @@
 __pycache__/
 dist/
 *.egg-info/
-.venv
+.venv/
 .vscode/
-.idea/
 
 # recordings (for privacy reasons)
 examples/recordings
