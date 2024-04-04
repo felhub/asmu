@@ -1,0 +1,26 @@
+ {         
+    "inputs": [
+        {
+        "name" : "t.bone EM-800",
+        "channel" : 9,
+        "color" : "#00AAAA"
+        }
+    ],    
+    "outputs" : [
+        {
+        "name" : "A77X_Left",
+        "channel" : 1,
+        "color" : "#00AA00"
+        }, {
+        "name" : "A77X_Right",
+        "channel" : 2,
+        "color" : "#0000AA"
+        }
+    ],
+    "interface" : {
+        "name" : "RME Fireface UFX",
+        "device" : "ASIO Fireface USB",
+        "rate" : 192000,
+        "chunk" : 2048
+    }
+}  
