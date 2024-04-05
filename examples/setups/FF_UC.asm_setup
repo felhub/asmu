@@ -1,0 +1,40 @@
+ {         
+    "inputs": [
+        {
+            "name" : "mic_ref",
+            "channel" : 1,
+            "color" : "#00AAAA",
+            "reference": true
+        }, {
+            "name" : "mic",
+            "channel" : 2,
+            "color" : "#AA00AA",
+            "cV" : 4.361
+        }, {
+            "name": "loop_in",
+            "channel": 5,
+            "color": "#AAAA00"
+        }
+    ],    
+    "outputs" : [
+        {
+            "name" : "spk_left",
+            "channel" : 1,
+            "color" : "#0000AA"
+        }, {
+            "name" : "spk_right",
+            "channel" : 2,
+            "color" : "#AA0000"
+        }, {
+            "name": "loop_out",
+            "channel": 5,
+            "color": "#AAAA00"
+        }
+    ],
+    "interface" : {
+        "name" : "RME Fireface UC",
+        "device" : "ASIO Fireface USB",
+        "rate" : 192000,
+        "chunk" : 2048
+    }
+}  
