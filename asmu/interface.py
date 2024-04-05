@@ -1,5 +1,7 @@
 import numpy as np
 import sounddevice as sd
+from typing import List, Tuple
+from asmu.inout import Input, Output
 
 DEBUG = True
 
@@ -11,7 +13,6 @@ class Interface():
             interfaceSetup (dict): Interface setup.
         """
         self._interfaceSetup = interfaceSetup
-        self.callback = None
 
     @property
     def name(self):
@@ -33,41 +34,41 @@ class Interface():
         return int(self._interfaceSetup['chunk'])
     
     # SOUNDDEVICE
-    def initSounddevice(self, channels: tuple[int, int]) -> None:
+    def initSounddevice(self, io:Tuple[List[Input], List[Output]]) -> None:
         sd.default.samplerate = self.rate
         sd.default.dtype = np.float32
         sd.default.blocksize = self.chunk
         try:
             sd.default.device = self.device # TODO - different input and output device
         except KeyError:
-            print("interface - no device specified, using default")
-            return
+            raise AttributeError("No audio device specified")
 
         if "ASIO" in self.device:
-            if channels[0]:
-                inChannels = [c - 1 for c in channels[0]] # convert to channel names starting with 0
-                asio_in = sd.AsioSettings(channel_selectors=inChannels)
+            if io[0]:
+                in_channels = [input.channel - 1 for input in io[0]] # convert to channel names starting with 0
+                asio_in = sd.AsioSettings(channel_selectors=in_channels)
 
-                if not channels[1]:
+                if not io[1]:
                     sd.default.extra_settings = asio_in
-                    sd.default.channels = len(inChannels)
+                    sd.default.channels = len(in_channels)
                     return
 
-            if channels[1]:
-                outChannels = [c - 1 for c in channels[1]]
-                asio_out = sd.AsioSettings(channel_selectors=outChannels)
+            if io[1]:
+                out_channels = [output.channel - 1 for output in io[1]]
+                asio_out = sd.AsioSettings(channel_selectors=out_channels)
 
-                if not channels[0]:
+                if not io[0]:
                     sd.default.extra_settings = asio_out
-                    sd.default.channels = len(outChannels)
+                    sd.default.channels = len(out_channels)
                     return
             
-            if channels[0] and channels[1]:
+            if io[0] and io[1]:
                 sd.default.extra_settings = (asio_in, asio_out)
-                sd.default.channels = (len(inChannels), len(outChannels))
+                sd.default.channels = (len(in_channels), len(out_channels))
                 return
             
-        elif "CoreAudio" in self.device: # TODO - update this
+        elif "CoreAudio" in self.device: 
+            raise NotImplementedError
             inChannels = [c - 1 for c in channels[0]] # convert to channel names starting with 0
             ca_in = sd.CoreAudioSettings(channel_map=inChannels)
 
@@ -84,6 +85,9 @@ class Interface():
                 sd.default.channels = len(inChannels)
         else:
             raise NotImplementedError
+        
+    def callback(self, indata: np.ndarray, outdata: np.ndarray, frames: int, time):
+        raise NotImplementedError("No callback implemnented by user")
                 
     def _callback(self, indata: np.ndarray, outdata: np.ndarray, frames: int, time, status) -> None:
         if status:
@@ -92,8 +96,8 @@ class Interface():
         outdata.fill(0)
         self.callback(indata, outdata, frames, time)
 
-    def start_stream(self, channels:tuple, finished_callback=None) -> None:  
-        self.initSounddevice(channels)   
+    def start_stream(self, io:Tuple[List[Input], List[Output]], finished_callback=None) -> None:  
+        self.initSounddevice(io)
         return sd.Stream(callback=self._callback, finished_callback=finished_callback)
     
     def stop_stream(self) -> None:
