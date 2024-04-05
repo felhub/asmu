@@ -125,6 +125,15 @@ class Recording():
             data = self._gen()
             self._pq.put(data, block=block)
 
+    def start_refill_thread(self, stream):
+        def runner(self, stream):
+            while stream.active:
+                try:
+                    self.refill_queue()
+                except queue.Full:
+                    pass
+        threading.Thread(target=runner, args=(self, stream, )).start()
+
     def empty_queue(self):
         while not self._pq.empty():
             self.get_queue()
