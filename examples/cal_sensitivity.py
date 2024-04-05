@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+raise NotImplementedError
 """Live calibrate cSPL for each michrophone and SPL-Calibrator."""
 import time
 import numpy as np

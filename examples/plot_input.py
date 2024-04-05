@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+raise NotImplementedError
 """Plot the live microphone signal(s) with PySide."""
 import keyboard
 import matplotlib.pyplot as plt

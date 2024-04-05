@@ -1,17 +1,16 @@
-#!/usr/bin/env python3
 """Create a recording with arbitrary duration."""
-import keyboard
-
 from asmu import Setup, Recording, Input, Output, Interface, Sine, WhiteNoise, SineBurst
 
-setup = Setup("./setups/rec_unlimited.asm_setup")
+setup = Setup("./setups/FF_UC.asm_setup")
 interface = Interface(setup.interface)
 inputs = []
-for inputSetup in setup.inputs:
-    inputs.append(Input(inputSetup))
+for in_setup in setup.inputs:
+    if in_setup["name"] == "mic":
+        inputs.append(Input(in_setup))
 outputs = []
-for outputSetup in setup.outputs:
-    outputs.append(Output(outputSetup))
+for out_setup in setup.outputs:
+    if out_setup["name"].startswith("spk"):
+        outputs.append(Output(out_setup))
 
 gen = Sine(interface.rate, interface.chunk, f=50)
 #gen = WhiteNoise(interface.chunk)
@@ -42,15 +41,14 @@ with Recording("./recordings/rec_unlimited.in.asm_recording", "w", setup.name, l
     interface.callback = callback
 
 
-    with interface.start_stream(([input.channel for input in inputs], [output.channel for output in outputs])) as stream:
-        print("Press q to stop recording!")
-        while stream.active:
-            gen.refill_queue()
-            inRecording.process_queue()
-            outRecording.process_queue()
-            if keyboard.is_pressed('q'):stream.stop()
+    with interface.start_stream((inputs, outputs)) as stream:
+        gen.start_refill_thread(stream)
+        inRecording.start_process_thread(stream)
+        outRecording.start_process_thread(stream)
+        input("Press ENTER to stop recording!")
+        stream.stop()
         
     inRecording.save_file()
     outRecording.save_file()
-print(f"\tRecording {inRecording.name} finished: {inRecording.path}")
-print(f"\tRecording {outRecording.name} finished: {outRecording.path}")
+print(f"Recording {inRecording.name} finished: {inRecording.path}")
+print(f"Recording {outRecording.name} finished: {outRecording.path}")
