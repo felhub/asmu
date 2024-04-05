@@ -47,11 +47,12 @@ class Setup():
         
         # load numpy arrays from external files
         for io in self.inputs+self.outputs:
-            try:
-                path = f"{self.path}/{self.name}/cFR_{io["name"]}.npy"
-                io["cFR"] = np.load(path)
-            except FileNotFoundError:
-                pass
+            for k in io.keys():
+                try:
+                    path = f"{self.path}/{self.name}/{k}_{io["name"]}.npy"
+                    io[k] = np.load(path)
+                except FileNotFoundError:
+                    pass
 
     def save_file(self, setupPath=None):
         if setupPath is not None:
@@ -60,13 +61,14 @@ class Setup():
 
         # save numpy arrays to external files
         for io in self.inputs+self.outputs:
-            try:
-                if isinstance(io["cFR"], np.ndarray):
-                    path = f"{self.path}/{self.name}/cFR_{io["name"]}.npy"
-                    np.save(path, io["cFR"])
-                    io.pop("cFR")
-            except KeyError:
-                pass
+            for (k, v) in io.items():
+                try:
+                    if isinstance(v, np.ndarray):
+                        path = f"{self.path}/{self.name}/{k}_{io["name"]}.npy"
+                        np.save(path, v)
+                        io.pop(k)
+                except KeyError:
+                    pass
 
         # save .asm_setup file
         with open(setupPath, 'w') as file:

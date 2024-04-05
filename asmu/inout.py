@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class IO():
     def __init__(self, IOsetup: dict) -> None:
         self._IOSetup = IOsetup
@@ -44,36 +45,49 @@ class IO():
                 del self._IOSetup["reference"]
             except KeyError:
                 pass
+    
+    # CALIBRATION FACTORS - defined by amplitude -> direct signal conversion!
+    @property
+    def cPa(self):
+        return float(self._IOSetup["cPa"])
+    @cPa.setter
+    def cPa(self, value:float):
+        self._IOSetup["cPa"] = value
+
+    @property
+    def kPa(self):
+        return int(self._IOSetup["kPa"])
+    @kPa.setter
+    def kPa(self, value:int):
+        self._IOSetup["kPa"] = value
+
+    @property
+    def cV(self):
+        return float(self._IOSetup["cV"])
+    @cV.setter
+    def cV(self, value:float):
+        self._IOSetup["cV"] = value
+
+    @property
+    def kV(self):
+        return int(self._IOSetup["kV"])
+    @kV.setter
+    def kV(self, value:int):
+        self._IOSetup["kV"] = value
+
+    @property
+    def cFR(self):
+        return self._IOSetup["cFR"]
+    @cFR.setter
+    def cFR(self, value):
+        self._IOSetup["cFR"] = np.array(value)
+
 
 class Input(IO):
     def __init__(self, inputSetup: dict) -> None: 
         super().__init__(inputSetup)
-        self._inputSetup = inputSetup
-
-    @property
-    def cSPL(self):
-        return float(self._inputSetup["cSPL"])
-    @cSPL.setter
-    def cSPL(self, value:float):
-        self._inputSetup["cSPL"] = value
-
-    @property
-    def kSPL(self):
-        return int(self._inputSetup["kSPL"])
-    @kSPL.setter
-    def kSPL(self, value:int):
-        self._inputSetup["kSPL"] = value 
-
-    @property
-    def cFR(self):
-        return self._inputSetup["cFR"]
-    @cFR.setter
-    def cFR(self, value):
-        self._inputSetup["cFR"] = np.array(value)
 
 
 class Output(IO):
     def __init__(self, outputSetup: dict) -> None: 
         super().__init__(outputSetup)
-
-        
