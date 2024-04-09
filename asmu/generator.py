@@ -29,8 +29,26 @@ class Generator():
                     pass
         threading.Thread(target=runner, args=(self, stream, )).start()
     
-    def _gen(self) -> None:
-        return None
+    def _gen(self):
+        raise NotImplementedError("Subclass has to define a _gen function!")
+
+class Player(Generator):
+    def __init__(self, asfile, chunk, queuesize=10):
+        self._asfile = asfile
+        self._chunk = chunk
+        super().__init__(queuesize)
+
+    def _gen(self):
+        data = self._asfile.read(self._chunk, dtype="float32", always_2d=True)
+        length = np.ma.size(data, axis=0)
+        if data.size == 0:
+            return None
+        elif length < self._chunk:
+            pad = np.zeros((self._chunk, self._asfile.channels))
+            pad[:length, :] = data
+            return pad
+        else:
+            return data
 
 class Chirp(Generator):
     def __init__(self, rate: int, chunk: int, f0: float, f1: float, duration: int, queuesize: int=10) -> None:
