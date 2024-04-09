@@ -1,35 +1,52 @@
 import numpy as np
 import scipy as sp
 import queue
+import threading
 
 class Analyzer():
-    def __init__(self, chunk, queuesize):
-        self._chunk = chunk
-
-        self._w = np.hanning(chunk)
+    def __init__(self, queuesize):
         self._q = queue.Queue(queuesize)
 
     def reset(self):
         # process full queue
         while not self._q.empty():
-            self.process_queue()
+            self._process_queue()
 
     def put_queue(self, data):
         self._q.put(data.copy())
 
-    def process_queue(self):
-        pass
+    def _process_queue(self):
+        raise NotImplementedError("Subclass has to define a process_queue function!")
+
+    def start_process_thread(self, stream):
+        def runner(self, stream):
+            while stream.active:
+                try:
+                    self._process_queue()
+                except queue.Empty:
+                    pass
+        threading.Thread(target=runner, args=(self, stream, )).start()
+
 
     def _get_fft(self) -> np.ndarray:
+        raise NotImplementedError() # TODO: Move this to helper function
         return np.fft.rfft(self._q.get()*self._w, axis=0, norm="forward")*2/np.mean(self._w)
+    
+class Recorder(Analyzer):
+    def __init__(self, signal, queuesize=10):
+        self._signal = signal
+        super().__init__(queuesize)
+        
+    def _process_queue(self):
+        self._signal.write(self._q.get(timeout=0.2))
 
 class calSPL(Analyzer):
     def __init__(self, chunk, queuesize: int=10):
         self._uks = []
         self._ks = []
-        super().__init__(chunk, queuesize)
+        super().__init__(queuesize)
 
-    def process_queue(self):
+    def _process_queue(self):
         ukm = self._get_fft()
 
         kmax = np.argmax(np.abs(ukm))
