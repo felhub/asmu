@@ -11,7 +11,7 @@
             "color" : "#AA00AA",
             "cV" : 4.361
         }, {
-            "name": "loop_in",
+            "name": "loop",
             "channel": 5,
             "color": "#AAAA00"
         }
@@ -26,7 +26,7 @@
             "channel" : 2,
             "color" : "#AA0000"
         }, {
-            "name": "loop_out",
+            "name": "loop",
             "channel": 5,
             "color": "#AAAA00"
         }

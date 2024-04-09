@@ -1,39 +1,41 @@
 """This script is used to analyze frequency response, noise and THD of an amplifier circuit."""
 import time
 import numpy as np
-from asmu import Setup, Recording, Input, Output, Interface, Sine, Chirp
+from asmu import ASetup, AFile, Recorder, Sine, Chirp
 
 
 mode="r"
-MEASURE = True; mode = "w"
+MEASURE = True; mode = "w+"
 DURATION = 10
 
-setup = Setup("./setups/FF_UC.asm_setup")
-interface = Interface(setup.interface)
-iref = Input(setup.inputs[0])
-icirc = Input(setup.inputs[1])
-oref = Output(setup.outputs[0])
+setup = ASetup("./setups/FF_UC.asm_setup")
+interface = setup.interface
+iref = setup.inputs[0]
+icirc = setup.inputs[1]
+oref = setup.outputs[0]
 
 # frequency response
-gen = Chirp(interface.rate, interface.chunk, 8, 50000, DURATION, queuesize=100)
-with Recording("./recordings/circuit_eval_fr.in.asm_recording", mode, setup.name, 2, interface.rate, interface.chunk) as inRecording:
+with AFile("./recordings/circuit_eval_fr.wav", mode, samplerate=interface.rate, channels=2) as afile:
     if MEASURE:
+        gen = Chirp(interface.rate, interface.chunk, 8, 50000, DURATION, queuesize=100)
+        alz = Recorder(afile)
+
         def callback(indata, outdata, frames, time):
-            if inRecording.latency is None:
-                inRecording.set_latency(time)
+            if afile.latency is None:
+                afile.cal_latency(time)
             outdata[:, 0] = gen.get_queue()
-            inRecording.put_queue(indata)
+            alz.put_queue(indata)
         interface.callback = callback
 
         with interface.start_stream(([iref, icirc], [oref])) as stream:
             gen.start_refill_thread(stream)
-            inRecording.start_process_thread(stream)
+            alz.start_process_thread(stream)
             time.sleep(DURATION)
             stream.stop()
 
-        inRecording.save_file()
+        afile.save_file()
 
-    indata = inRecording.data[inRecording.latency:, :]
+    indata = afile.data[afile.latency:, :]
     f = np.fft.rfftfreq(np.ma.size(indata, axis=0))*interface.rate
     ifu = np.argmin(np.abs(f-40000))
     ifl = np.argmin(np.abs(f-10))
@@ -42,47 +44,51 @@ with Recording("./recordings/circuit_eval_fr.in.asm_recording", mode, setup.name
     fr = uk_in[:, 1]/uk_in[:, 0]
 
 # noise 
-with Recording("./recordings/circuit_eval_noise.in.asm_recording", mode, setup.name, 2, interface.rate, interface.chunk) as inRecording:
+with AFile("./recordings/circuit_eval_noise.wav", mode, samplerate=interface.rate, channels=1) as afile:
     if MEASURE:
+        alz = Recorder(afile)
+
         def callback(indata, outdata, frames, time):
-            inRecording.put_queue(indata)
+            alz.put_queue(indata)
         interface.callback = callback
 
-        with interface.start_stream(([iref, icirc], [])) as stream:
-            inRecording.start_process_thread(stream)
+        with interface.start_stream(([icirc], [])) as stream:
+            alz.start_process_thread(stream)
             time.sleep(DURATION)
             stream.stop()
 
-        inRecording.save_file()
+        afile.save_file()
 
-    indata = inRecording.data
+    indata = afile.data
     f = np.fft.rfftfreq(np.ma.size(indata, axis=0))*interface.rate
     ifu = np.argmin(np.abs(f-40000))
     ifl = np.argmin(np.abs(f-10))
     f_noise = f[ifl:ifu]
     uk_in = (np.fft.rfft(indata, axis=0, norm="forward")*2)[ifl:ifu, :]
-    noise = np.abs(uk_in[:, 1])*icirc.cV*1e6/np.sqrt(2) # noise in mV(RMS)
+    noise = np.abs(uk_in[:, 0])*icirc.cV*1e6/np.sqrt(2) # noise in mV(RMS)
 
 # THD
-gen = Sine(interface.rate, interface.chunk, 1000, queuesize=100)
-with Recording("./recordings/circuit_eval_thd.in.asm_recording", mode, setup.name, 2, interface.rate, interface.chunk) as inRecording:
+with AFile("./recordings/circuit_eval_thd.wav", mode, samplerate=interface.rate, channels=2) as afile:
     if MEASURE:
+        gen = Sine(interface.rate, interface.chunk, 1000, queuesize=100)
+        alz = Recorder(afile)
+
         def callback(indata, outdata, frames, time):
-            if inRecording.latency is None:
-                inRecording.set_latency(time)
+            if afile.latency is None:
+                afile.cal_latency(time)
             outdata[:, 0] = gen.get_queue()
-            inRecording.put_queue(indata)
+            alz.put_queue(indata)
         interface.callback = callback
 
         with interface.start_stream(([iref, icirc], [oref])) as stream:
             gen.start_refill_thread(stream)
-            inRecording.start_process_thread(stream)
+            alz.start_process_thread(stream)
             time.sleep(DURATION)
             stream.stop()
     
-        inRecording.save_file()
+        afile.save_file()
 
-    indata = inRecording.data[inRecording.latency:, :]
+    indata = afile.data[afile.latency:, :]
     f = np.fft.rfftfreq(np.ma.size(indata, axis=0))*interface.rate
     ifu = np.argmin(np.abs(f-40000))
     ifl = np.argmin(np.abs(f-10))
@@ -131,9 +137,9 @@ axs[0].set(xlabel="Frequency (Hz)", ylabel="Absolute response")
 axs[1].set(xlabel="Frequency (Hz)", ylabel="Phase response (deg)")
 axs[2].set(xlabel="Frequency (Hz)", ylabel="Noise (uV(RMS))")
 axs[3].set(xlabel="Frequency (Hz)", ylabel="Absolute response")
-terzbands = [10, 12.5, 16, 20, 25, 31.5, 40, 50, 63, 80, 
-             100, 125, 160, 200, 250, 315, 400, 500, 630, 800, 
-             1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 
+terzbands = [10, 12.5, 16, 20, 25, 31.5, 40, 50, 63, 80,
+             100, 125, 160, 200, 250, 315, 400, 500, 630, 800,
+             1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000,
              10000, 12500, 16000, 20000, 25000, 31500, 40000]
 for ax in axs:
     ax.set_xlim(terzbands[0], terzbands[-1])
