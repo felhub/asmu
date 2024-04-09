@@ -1,8 +1,9 @@
 import json
 import numpy as np
 import os
+from asmu import Input, Output, Interface
 
-class Setup():
+class ASetup():
     def __init__(self, setupPath: str) -> None:
         """Class to handle setups.
 
@@ -12,6 +13,17 @@ class Setup():
         self._path, file = os.path.split(setupPath)
         self._name = file.replace(".asm_setup", "") # extract name without file ending
         self.load_file(setupPath)
+
+        # create asmu objects
+        self._interface = Interface(self._setup["interface"])
+
+        self._inputs = []
+        for in_setup in self._setup["inputs"]:
+            self._inputs.append(Input(in_setup))
+
+        self._outputs = []
+        for out_setup in self._setup["outputs"]:
+            self._outputs.append(Output(out_setup))
 
     @property
     def name(self):
@@ -23,30 +35,22 @@ class Setup():
 
     @property
     def inputs(self):
-        try:
-            value = self._setup["inputs"]
-            return value
-        except KeyError:
-            return []
+        return self._inputs
 
     @property
     def outputs(self):
-        try:
-            value = self._setup["outputs"]
-            return value
-        except KeyError:
-            return []
+        return self._outputs
 
     @property
     def interface(self):
-        return self._setup["interface"]
+        return self._interface
 
     def load_file(self, setupPath):
         with open(setupPath, "r") as file:
             self._setup = json.load(file)
         
         # load numpy arrays from external files
-        for io in self.inputs+self.outputs:
+        for io in self._setup["inputs"]+self._setup["outputs"]:
             for k in io.keys():
                 try:
                     path = f"{self.path}/{self.name}/{k}_{io["name"]}.npy"
@@ -55,12 +59,13 @@ class Setup():
                     pass
 
     def save_file(self, setupPath=None):
+        # update path
         if setupPath is not None:
             self.__init__(setupPath)
         setupPath = f"{self.path}/{self.name}.asm_setup"
 
         # save numpy arrays to external files
-        for io in self.inputs+self.outputs:
+        for io in self._setup["inputs"]+self._setup["outputs"]:
             for (k, v) in io.items():
                 try:
                     if isinstance(v, np.ndarray):
